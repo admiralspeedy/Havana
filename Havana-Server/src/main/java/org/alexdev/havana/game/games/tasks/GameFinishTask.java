@@ -81,9 +81,9 @@ public class GameFinishTask implements Runnable {
                 String firstIp = NettyPlayerNetwork.getIpAddress(firstPlayer.getNetwork().getChannel());
                 String secondIp = NettyPlayerNetwork.getIpAddress(secondPlayer.getNetwork().getChannel());
 
-                if (!firstIp.equals(secondIp)
+                /*if (!firstIp.equals(secondIp)
                         && !PlayerDao.getIpAddresses(firstPlayer.getDetails().getId(), RoomTradeManager.TRADE_BAN_IP_HISTORY_LIMIT).contains(secondIp)
-                        && !PlayerDao.getIpAddresses(secondPlayer.getDetails().getId(), RoomTradeManager.TRADE_BAN_IP_HISTORY_LIMIT).contains(firstIp)) {
+                        && !PlayerDao.getIpAddresses(secondPlayer.getDetails().getId(), RoomTradeManager.TRADE_BAN_IP_HISTORY_LIMIT).contains(firstIp)) {*/
                     for (GamePlayer g : this.sortedTeamList.get(0).getPlayers()) {
                         Player winningPlayer = g.getPlayer();
 
@@ -95,9 +95,9 @@ public class GameFinishTask implements Runnable {
 
                         AchievementManager.getInstance().tryProgress(AchievementType.ACHIEVEMENT_GAME_PLAYED, winningPlayer);
                     }
-                } else {
+                /*} else {
                     saveScore = false;
-                }
+                }*/
             }
 
             for (GamePlayer gamePlayer : this.players) {
