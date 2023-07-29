@@ -5,8 +5,10 @@ import org.alexdev.havana.messages.outgoing.rooms.FLOOR_MAP;
 import org.alexdev.havana.messages.outgoing.rooms.HEIGHTMAP;
 import org.alexdev.havana.messages.outgoing.rooms.HEIGHTMAP_UPDATE;
 import org.alexdev.havana.messages.outgoing.rooms.user.USER_OBJECTS;
+import org.alexdev.havana.messages.outgoing.rooms.user.YOUARESPECTATOR;
 import org.alexdev.havana.messages.types.MessageEvent;
 import org.alexdev.havana.server.netty.streams.NettyRequest;
+import org.alexdev.havana.game.games.player.GamePlayer;
 
 import java.util.List;
 
@@ -24,5 +26,11 @@ public class GET_FLOORMAP implements MessageEvent {
         }
 
         player.send(new USER_OBJECTS(List.of()));
+
+        GamePlayer gamePlayer = player.getRoomUser().getGamePlayer();
+
+        if (gamePlayer != null && gamePlayer.isSpectator()) {
+            player.send(new YOUARESPECTATOR());
+        }
     }
 }

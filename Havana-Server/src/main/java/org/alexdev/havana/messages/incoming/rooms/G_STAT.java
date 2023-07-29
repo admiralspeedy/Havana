@@ -30,8 +30,6 @@ public class G_STAT implements MessageEvent {
         }
 
         if (player.getRoomUser().getGamePlayer() != null && player.getRoomUser().getGamePlayer().isSpectator()) {
-            player.send(new YOUARESPECTATOR());
-
             Game game = player.getRoomUser().getGamePlayer().getGame();
 
             if (game.isGameStarted()) {
