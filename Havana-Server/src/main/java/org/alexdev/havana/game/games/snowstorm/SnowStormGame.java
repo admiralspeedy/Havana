@@ -26,6 +26,7 @@ import org.alexdev.havana.game.room.models.RoomModel;
 import org.alexdev.havana.log.Log;
 import org.alexdev.havana.util.DateUtil;
 import org.alexdev.havana.util.config.GameConfiguration;
+import org.alexdev.havana.messages.outgoing.user.currencies.TICKET_BALANCE;
 
 import java.util.Collections;
 import java.util.List;
@@ -97,14 +98,13 @@ public class SnowStormGame extends Game {
     }
 
     @Override
-    public void gamePrepare() {
-        super.gamePrepare();
-
+    public void gameStarted() {
         int ticketCharge = GameConfiguration.getInstance().getInteger("snowstorm.ticket.charge");
 
         if (ticketCharge > 0) {
             for (GamePlayer gamePlayer : this.getActivePlayers()) {
-                CurrencyDao.decreaseTickets(gamePlayer.getPlayer().getDetails(), 2); // BattleBall costs 2 tickets
+                CurrencyDao.decreaseTickets(gamePlayer.getPlayer().getDetails(), ticketCharge);
+                gamePlayer.getPlayer().send(new TICKET_BALANCE(gamePlayer.getPlayer().getDetails().getTickets()));
             }
         }
     }

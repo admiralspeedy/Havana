@@ -17,6 +17,7 @@ import org.alexdev.havana.game.pathfinder.Position;
 import org.alexdev.havana.game.player.Player;
 import org.alexdev.havana.game.room.mapping.RoomTileState;
 import org.alexdev.havana.util.config.GameConfiguration;
+import org.alexdev.havana.messages.outgoing.user.currencies.TICKET_BALANCE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,14 +95,6 @@ public class BattleBallGame extends Game {
 
         this.storedPowers.clear();
         this.activePowers.clear();
-
-        int ticketCharge = GameConfiguration.getInstance().getInteger("battleball.ticket.charge");
-
-        if (ticketCharge > 0) {
-            for (GamePlayer gamePlayer : this.getActivePlayers()) {
-                CurrencyDao.decreaseTickets(gamePlayer.getPlayer().getDetails(), 2); // BattleBall costs 2 tickets
-            }
-        }
     }
 
     @Override
@@ -121,7 +114,14 @@ public class BattleBallGame extends Game {
 
     @Override
     public void gameStarted() {
+        int ticketCharge = GameConfiguration.getInstance().getInteger("battleball.ticket.charge");
 
+        if (ticketCharge > 0) {
+            for (GamePlayer gamePlayer : this.getActivePlayers()) {
+                CurrencyDao.decreaseTickets(gamePlayer.getPlayer().getDetails(), ticketCharge);
+                gamePlayer.getPlayer().send(new TICKET_BALANCE(gamePlayer.getPlayer().getDetails().getTickets()));
+            }
+        }
     }
 
     @Override
