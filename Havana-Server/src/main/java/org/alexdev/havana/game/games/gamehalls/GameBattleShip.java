@@ -11,6 +11,8 @@ import org.alexdev.havana.game.pathfinder.Position;
 import org.alexdev.havana.game.player.Player;
 import org.alexdev.havana.game.room.Room;
 import org.alexdev.havana.messages.outgoing.rooms.games.ITEMMSG;
+import org.alexdev.havana.messages.outgoing.rooms.games.OPENGAMEBOARD;
+import org.alexdev.havana.messages.outgoing.rooms.games.CLOSEGAMEBOARD;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +26,7 @@ public class GameBattleShip extends GamehallGame {
     private boolean isTurnUsed;
     private boolean gameStarted;
     private boolean gameEnded;
+    private boolean windowClosed;
 
     public GameBattleShip(List<int[]> kvp) {
         super(kvp);
@@ -38,6 +41,7 @@ public class GameBattleShip extends GamehallGame {
         this.isTurnUsed = false;
         this.gameStarted = false;
         this.gameEnded = false;
+        this.windowClosed = false;
     }
 
     @Override
@@ -52,45 +56,10 @@ public class GameBattleShip extends GamehallGame {
     }
 
     @Override
-    public void joinGame(Player player) {
-        if (!this.gameStarted) {
-            return;
-        }
-
-        if (this.getPlayerNum(player) == -1) {
-            if (this.players[0] == null) {
-                this.players[0] = player;
-            } else {
-                if (this.players[1] == null) {
-                    this.players[1] = player;
-                }
-            }
-        }
-
-        String[] opponentData = new String[2];
-
-        int i = 0;
-        for (Player p : this.players) {
-            opponentData[i] = this.getPlayerNum(p) + " " + this.players[i].getDetails().getName();
-            i++;
-        }
-
-        this.sendToEveryone(new ITEMMSG(new String[]{this.getGameId(), "OPPONENTS", String.join(Character.toString((char) 13), opponentData)}));
-        this.sendMarkedMap();
-    }
+    public void joinGame(Player player) { }
 
     @Override
-    public void leaveGame(Player player) {
-        if (this.nextTurn == getPlayerNum(player)) {
-            rotateTurn();
-        }
-
-        for (int i = 0; i < this.players.length; i++) {
-            if (this.players[i] == player) {
-                this.players[i] = null;
-            }
-        }
-    }
+    public void leaveGame(Player player) { }
 
     @Override
     public void handleCommand(Player player, Room room, Item item, String command, String[] args) {
@@ -104,7 +73,6 @@ public class GameBattleShip extends GamehallGame {
             int shipId = Integer.parseInt(args[0]);
             int startX = Integer.parseInt(args[1]);
             int startY = Integer.parseInt(args[2]);
-
             int endX = Integer.parseInt(args[3]);
             int endY = Integer.parseInt(args[4]);
 
@@ -112,16 +80,6 @@ public class GameBattleShip extends GamehallGame {
 
             if (shipType == null) {
                 return;
-            }
-
-            if (this.getPlayerNum(player) == -1) {
-                if (this.players[0] == null) {
-                    this.players[0] = player;
-                } else {
-                    if (this.players[1] == null) {
-                        this.players[1] = player;
-                    }
-                }
             }
 
             if (this.countShips(shipType, getPlayerNum(player)) >= shipType.getMaxAllowed()) {
@@ -193,10 +151,7 @@ public class GameBattleShip extends GamehallGame {
                 this.sendToEveryone(new ITEMMSG(new String[]{this.getGameId(), "MISS" }));
             }
 
-            //this.isTurnUsed = true;
             GameShipMoveResult finalMoveResult = moveResult;
-
-            //GameScheduler.getInstance().getService().schedule(() -> {
             if (finalMoveResult == GameShipMoveResult.MISS) {
                 this.isTurnUsed = true;
                 GameScheduler.getInstance().getService().schedule(this::rotateTurn, 2, TimeUnit.SECONDS);
@@ -204,27 +159,54 @@ public class GameBattleShip extends GamehallGame {
                 this.isTurnUsed = false;
                 this.sendToEveryone(new ITEMMSG(new String[]{this.getGameId(), "TURN", String.valueOf(this.nextTurn)}));
             }
-            //}, 5, TimeUnit.SECONDS);
 
             if (this.isGameOver(oppositePlayer)) {
                 this.gameEnded = true;
                 this.sendToEveryone(new ITEMMSG(new String[]{this.getGameId(), "GAMEEND", player.getDetails().getName()}));
                 this.sendToEveryone(new ITEMMSG(new String[]{this.getGameId(), "GAMEOVER"}));
                 this.isTurnUsed = true;
-                //GameManager.getInstance().giveRandomCredits(player, true);
-                //GameManager.getInstance().giveRandomCredits(this.getOppositePlayer(player), false);
-
             }
 
             player.getRoomUser().getTimerManager().resetRoomTimer();
-            //GameScheduler.getInstance().getService().schedule(this::rotateTurn, 5, TimeUnit.SECONDS);
-            //GameScheduler.getInstance().getService().schedule(this::sendMarkedMap, 5, TimeUnit.SECONDS);
+        }
 
+        if (command.equals("OPEN")) {
+            if (this.getPlayerNum(player) == -1) {
+                if (this.players[0] == null) {
+                    this.players[0] = player;
+                } else {
+                    if (this.players[1] == null) {
+                        this.players[1] = player;
+                    }
+                }
+            }
+
+            if (this.gameEnded) {
+                this.shipsPlaced.clear();
+                this.playerListMap.clear();
+                this.nextTurn = 0;
+                this.isTurnUsed = false;
+                this.gameStarted = false;
+                this.gameEnded = false;
+
+                var oppositePlayer = this.getOppositePlayer(player);
+
+                if (oppositePlayer != null) {
+                    oppositePlayer.send(new OPENGAMEBOARD(this.getGameId(), this.getGameFuseType()));
+                }
+            }
         }
 
         if (command.equals("CLOSE")) {
-            trigger.onEntityLeave(player, player.getRoomUser(), item);
-            return;
+            if (!this.windowClosed) {
+                var oppositePlayer = this.getOppositePlayer(player);
+
+                if (oppositePlayer != null) {
+                    oppositePlayer.send(new CLOSEGAMEBOARD(this.getGameId(), this.getGameFuseType()));
+                }
+            }
+
+            this.windowClosed = !this.windowClosed;
         }
     }
 
@@ -255,7 +237,6 @@ public class GameBattleShip extends GamehallGame {
             }
         }
     }
-
 
     private String generateHitGrid(int player) {
         StringBuilder map = new StringBuilder();
@@ -399,7 +380,7 @@ public class GameBattleShip extends GamehallGame {
 
     @Override
     public int getMinimumPeopleRequired() {
-        return 1;
+        return 2;
     }
 
     @Override
